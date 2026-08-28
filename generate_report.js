@@ -329,6 +329,34 @@ function extractLineItemExpiryDate(item) {
   return { expireDate: null, isExplicit: false };
 }
 
+const INVOICE_CACHE_PATH = path.join(__dirname, 'invoices_cache.json');
+
+function loadInvoiceCache() {
+  try {
+    if (fs.existsSync(INVOICE_CACHE_PATH)) {
+      return JSON.parse(fs.readFileSync(INVOICE_CACHE_PATH, 'utf8'));
+    }
+  } catch (_) {
+    try {
+      const tmpPath = path.join(os.tmpdir(), 'invoices_cache.json');
+      if (fs.existsSync(tmpPath)) {
+        return JSON.parse(fs.readFileSync(tmpPath, 'utf8'));
+      }
+    } catch (_) {}
+  }
+  return {};
+}
+
+function saveInvoiceCache(cache) {
+  try {
+    fs.writeFileSync(INVOICE_CACHE_PATH, JSON.stringify(cache, null, 2), 'utf8');
+  } catch (_) {
+    try {
+      fs.writeFileSync(path.join(os.tmpdir(), 'invoices_cache.json'), JSON.stringify(cache, null, 2), 'utf8');
+    } catch (_) {}
+  }
+}
+
 /** Main extraction function */
 async function extractAllExpiredProducts(options = {}) {
   const onlyExpired = options.onlyExpired !== false; // default true
@@ -343,7 +371,7 @@ async function extractAllExpiredProducts(options = {}) {
   let page = 1;
   const perPage = 200;
 
-  // 1. Fetch all invoices metadata for Org
+  // 1. Fetch all invoices metadata for Org (1 API call per 200 invoices)
   while (true) {
     console.log(`[Report] Fetching invoice list page ${page} for Org ${ORG_ID}...`);
     const res = await apiRequest('GET', `/invoices?page=${page}&per_page=${perPage}&sort_column=date&sort_order=D`);
@@ -358,126 +386,151 @@ async function extractAllExpiredProducts(options = {}) {
     page++;
   }
 
-  console.log(`[Report] Total invoices found: ${allInvoicesSummary.length}. Now fetching line items and serials...`);
+  console.log(`[Report] Total invoices found: ${allInvoicesSummary.length}. Checking local cache to minimize API usage...`);
 
-  const reportRecords = [];
-  let processedCount = 0;
-
-  // Fetch full details for each invoice to get line items and serial numbers
-  const BATCH_SIZE = 15;
+  const invoiceCache = loadInvoiceCache();
   const maxInvoicesToProcess = options.limit || allInvoicesSummary.length;
   const targetInvoices = allInvoicesSummary.slice(0, maxInvoicesToProcess);
 
-  for (let i = 0; i < targetInvoices.length; i += BATCH_SIZE) {
-    const batch = targetInvoices.slice(i, i + BATCH_SIZE);
-    await Promise.all(batch.map(async (inv) => {
-      try {
-        const detailRes = await apiRequest('GET', `/invoices/${inv.invoice_id}`);
-        if (detailRes.status >= 400 || !detailRes.data || !detailRes.data.invoice) return;
-        const invoice = detailRes.data.invoice;
+  // 2. Only fetch invoices that are not in cache or have been modified since last sync
+  const invoicesToFetch = targetInvoices.filter(inv => {
+    const cached = invoiceCache[inv.invoice_id];
+    if (!cached || !cached.invoice) return true;
+    if (inv.last_modified_time && cached.last_modified_time !== inv.last_modified_time) return true;
+    return false;
+  });
 
-        const invNumber = invoice.invoice_number || inv.invoice_number || '';
-        const rawInvDate = invoice.date || inv.date || '';
-        const invDate = parseZohoDate(rawInvDate) || rawInvDate || '';
-        const customerName = invoice.customer_name || inv.customer_name || '';
-        const currencyCode = invoice.currency_code || inv.currency_code || 'USD';
+  console.log(`[Report] Invoices to fetch from Zoho API: ${invoicesToFetch.length} (Reusing ${targetInvoices.length - invoicesToFetch.length} from cache — saved ${targetInvoices.length - invoicesToFetch.length} API calls!)`);
 
-        const lineItems = invoice.line_items || [];
-        for (const item of lineItems) {
-          const itemName = item.name || item.description || 'Unnamed Item';
-          
-          // Ignore opening balance dummy items
-          if (itemName.toUpperCase() === 'OPB' || (item.sku && item.sku.toUpperCase() === 'OPB')) {
-            continue;
-          }
+  const BATCH_SIZE = 15;
+  let fetchedCount = 0;
 
-          // Exact SKU from line item or custom field
-          let sku = item.sku || '';
-          if (!sku && Array.isArray(item.item_custom_fields)) {
-            const skuField = item.item_custom_fields.find(f => 
-              f.api_name === 'cf_sku' || 
-              f.api_name === 'cf_part_no' || 
-              f.label === 'Part No' || 
-              f.label === 'SKU'
-            );
-            if (skuField) sku = skuField.value || skuField.value_formatted || '';
-          }
-
-          const itemRate = Number(item.rate || 0);
-          const quantity = Number(item.quantity || 1);
-          const subTotal = Number(item.item_total || (itemRate * quantity) || 0);
-
-          // Extract Expiry Date ONLY from Zoho WARRANTY EXPIRED (cf_warranty_expired) custom field
-          // NO fallback calculation — if field is empty in Zoho, skip this item
-          const expiryInfo = extractLineItemExpiryDate(item);
-
-          // Skip items that have no WARRANTY EXPIRED date set in Zoho Books
-          if (!expiryInfo.expireDate) continue;
-
-          const expireDate = expiryInfo.expireDate;
-
-          // Calculate warranty duration from invoice date → expiry date (for display only)
-          let warrantyMonths = customWarrantyMonths;
-          if (invDate) {
-            const d1 = new Date(invDate);
-            const d2 = new Date(expireDate);
-            if (!isNaN(d1.getTime()) && !isNaN(d2.getTime())) {
-              const diff = (d2.getFullYear() - d1.getFullYear()) * 12 + (d2.getMonth() - d1.getMonth());
-              if (diff > 0) warrantyMonths = diff;
-            }
-          }
-
-          // Determine status from WARRANTY EXPIRED date vs today
-          const expDateObj = new Date(expireDate);
-          expDateObj.setHours(0, 0, 0, 0);
-          const daysRemaining = Math.floor((expDateObj - today) / (1000 * 60 * 60 * 24));
-          const isExpired = daysRemaining < 0;
-          const status = isExpired ? 'EXPIRED' : (daysRemaining <= 30 ? 'EXPIRING_SOON' : 'ACTIVE');
-
-          // Extract Serial Numbers
-          let serialNumbers = [];
-          if (Array.isArray(item.serial_numbers) && item.serial_numbers.length > 0) {
-            serialNumbers = item.serial_numbers.map(s => typeof s === 'object' ? (s.serial_number || JSON.stringify(s)) : String(s).trim()).filter(Boolean);
-          } else if (Array.isArray(item.serial_number_details) && item.serial_number_details.length > 0) {
-            serialNumbers = item.serial_number_details.map(s => String(s.serial_number || '').trim()).filter(Boolean);
-          }
-
-          // Build base row
-          const baseRow = {
-            expire_date: expireDate,
-            item_name: itemName,
-            sku: sku || '—',
-            invoice_date: invDate || 'N/A',
-            currency: currencyCode,
-            sub_total: itemRate.toFixed(2),
-            total_line_sub_total: subTotal.toFixed(2),
-            invoice_number: invNumber,
-            customer_name: customerName,
-            warranty_months: warrantyMonths,
-            days_expired: isExpired ? Math.abs(daysRemaining) : 0,
-            days_remaining: daysRemaining,
-            status: status,
-            invoice_status: invoice.status || inv.status || ''
+  if (invoicesToFetch.length > 0) {
+    for (let i = 0; i < invoicesToFetch.length; i += BATCH_SIZE) {
+      const batch = invoicesToFetch.slice(i, i + BATCH_SIZE);
+      await Promise.all(batch.map(async (inv) => {
+        try {
+          const detailRes = await apiRequest('GET', `/invoices/${inv.invoice_id}`);
+          if (detailRes.status >= 400 || !detailRes.data || !detailRes.data.invoice) return;
+          const invoice = detailRes.data.invoice;
+          invoiceCache[inv.invoice_id] = {
+            invoice: invoice,
+            last_modified_time: inv.last_modified_time || invoice.last_modified_time || ''
           };
+        } catch (err) {}
+      }));
 
-          // Generate row per serial number, or one row for non-serialized items
-          if (serialNumbers.length > 0) {
-            for (const sn of serialNumbers) {
-              const row = { ...baseRow, serial_number: sn };
-              if (!onlyExpired || isExpired) reportRecords.push(row);
-            }
-          } else {
-            const row = { ...baseRow, serial_number: 'Non-serialized' };
-            if (!onlyExpired || isExpired) reportRecords.push(row);
-          }
+      fetchedCount = Math.min(fetchedCount + batch.length, invoicesToFetch.length);
+      const pct = Math.round((fetchedCount / invoicesToFetch.length) * 100);
+      process.stdout.write(`[Report] Fetched ${fetchedCount}/${invoicesToFetch.length} new invoices (${pct}%)...\r`);
+      await new Promise(r => setTimeout(r, 60));
+    }
+    console.log(`\n[Report] Saved new invoices to cache.`);
+    saveInvoiceCache(invoiceCache);
+  }
+
+  // 3. Process all invoices from cache (instant, 0 additional API calls)
+  const reportRecords = [];
+
+  for (const inv of targetInvoices) {
+    const cachedEntry = invoiceCache[inv.invoice_id];
+    if (!cachedEntry || !cachedEntry.invoice) continue;
+    const invoice = cachedEntry.invoice;
+
+    const invNumber = invoice.invoice_number || inv.invoice_number || '';
+    const rawInvDate = invoice.date || inv.date || '';
+    const invDate = parseZohoDate(rawInvDate) || rawInvDate || '';
+    const customerName = invoice.customer_name || inv.customer_name || '';
+    const currencyCode = invoice.currency_code || inv.currency_code || 'USD';
+
+    const lineItems = invoice.line_items || [];
+    for (const item of lineItems) {
+      const itemName = item.name || item.description || 'Unnamed Item';
+      
+      // Ignore opening balance dummy items
+      if (itemName.toUpperCase() === 'OPB' || (item.sku && item.sku.toUpperCase() === 'OPB')) {
+        continue;
+      }
+
+      // Exact SKU from line item or custom field
+      let sku = item.sku || '';
+      if (!sku && Array.isArray(item.item_custom_fields)) {
+        const skuField = item.item_custom_fields.find(f => 
+          f.api_name === 'cf_sku' || 
+          f.api_name === 'cf_part_no' || 
+          f.label === 'Part No' || 
+          f.label === 'SKU'
+        );
+        if (skuField) sku = skuField.value || skuField.value_formatted || '';
+      }
+
+      const itemRate = Number(item.rate || 0);
+      const quantity = Number(item.quantity || 1);
+      const subTotal = Number(item.item_total || (itemRate * quantity) || 0);
+
+      // Extract Expiry Date ONLY from Zoho WARRANTY EXPIRED (cf_warranty_expired) custom field
+      const expiryInfo = extractLineItemExpiryDate(item);
+
+      // Skip items that have no WARRANTY EXPIRED date set in Zoho Books
+      if (!expiryInfo.expireDate) continue;
+
+      const expireDate = expiryInfo.expireDate;
+
+      // Calculate warranty duration from invoice date → expiry date (for display only)
+      let warrantyMonths = customWarrantyMonths;
+      if (invDate) {
+        const d1 = new Date(invDate);
+        const d2 = new Date(expireDate);
+        if (!isNaN(d1.getTime()) && !isNaN(d2.getTime())) {
+          const diff = (d2.getFullYear() - d1.getFullYear()) * 12 + (d2.getMonth() - d1.getMonth());
+          if (diff > 0) warrantyMonths = diff;
         }
-      } catch (err) {}
-    }));
+      }
 
-    processedCount = Math.min(processedCount + batch.length, targetInvoices.length);
-    const pct = Math.round((processedCount / targetInvoices.length) * 100);
-    process.stdout.write(`[Report] Processed ${processedCount}/${targetInvoices.length} invoices (${pct}%)...\r`);
-    await new Promise(r => setTimeout(r, 60));
+      // Determine status from WARRANTY EXPIRED date vs today
+      const expDateObj = new Date(expireDate);
+      expDateObj.setHours(0, 0, 0, 0);
+      const daysRemaining = Math.floor((expDateObj - today) / (1000 * 60 * 60 * 24));
+      const isExpired = daysRemaining < 0;
+      const status = isExpired ? 'EXPIRED' : (daysRemaining <= 30 ? 'EXPIRING_SOON' : 'ACTIVE');
+
+      // Extract Serial Numbers
+      let serialNumbers = [];
+      if (Array.isArray(item.serial_numbers) && item.serial_numbers.length > 0) {
+        serialNumbers = item.serial_numbers.map(s => typeof s === 'object' ? (s.serial_number || JSON.stringify(s)) : String(s).trim()).filter(Boolean);
+      } else if (Array.isArray(item.serial_number_details) && item.serial_number_details.length > 0) {
+        serialNumbers = item.serial_number_details.map(s => String(s.serial_number || '').trim()).filter(Boolean);
+      }
+
+      // Build base row
+      const baseRow = {
+        expire_date: expireDate,
+        item_name: itemName,
+        sku: sku || '—',
+        invoice_date: invDate || 'N/A',
+        currency: currencyCode,
+        sub_total: itemRate.toFixed(2),
+        total_line_sub_total: subTotal.toFixed(2),
+        invoice_number: invNumber,
+        customer_name: customerName,
+        warranty_months: warrantyMonths,
+        days_expired: isExpired ? Math.abs(daysRemaining) : 0,
+        days_remaining: daysRemaining,
+        status: status,
+        invoice_status: invoice.status || inv.status || ''
+      };
+
+      // Generate row per serial number, or one row for non-serialized items
+      if (serialNumbers.length > 0) {
+        for (const sn of serialNumbers) {
+          const row = { ...baseRow, serial_number: sn };
+          if (!onlyExpired || isExpired) reportRecords.push(row);
+        }
+      } else {
+        const row = { ...baseRow, serial_number: 'Non-serialized' };
+        if (!onlyExpired || isExpired) reportRecords.push(row);
+      }
+    }
   }
 
   console.log(`\n[Report] Processing complete! Found ${reportRecords.length} records matching criteria for Org ID ${ORG_ID}.`);

@@ -8,6 +8,7 @@ debug_invoice_raw.json
 
 # Large generated report files
 latest_report.json
+invoices_cache.json
 expired_products_report_*.csv
 
 # Node

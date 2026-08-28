@@ -1,0 +1,15 @@
+# Sensitive credentials - NEVER commit these
+.env
+tokens.json
+
+# Debug/temp files
+debug_item.json
+debug_invoice_raw.json
+
+# Large generated report files
+latest_report.json
+expired_products_report_*.csv
+
+# Node
+node_modules/
+npm-debug.log*

@@ -1,0 +1,1445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zoho Books — Expired Products & Warranty Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --bg-deep: #060b14;
+  --bg-card: rgba(16, 26, 46, 0.75);
+  --bg-card-hover: rgba(23, 38, 68, 0.9);
+  --border: rgba(255, 255, 255, 0.08);
+  --border-active: rgba(0, 180, 216, 0.45);
+
+  --blue: #00b4d8;
+  --blue-glow: rgba(0, 180, 216, 0.25);
+  --red: #ff5252;
+  --red-bg: rgba(255, 82, 82, 0.12);
+  --gold: #f59e0b;
+  --gold-bg: rgba(245, 158, 11, 0.12);
+  --green: #10b981;
+  --green-bg: rgba(16, 185, 129, 0.12);
+  --purple: #8b5cf6;
+
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+
+  --radius: 14px;
+  --radius-sm: 8px;
+  --shadow: 0 12px 36px -4px rgba(0, 0, 0, 0.5);
+  --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: var(--bg-deep);
+  color: var(--text-primary);
+  min-height: 100vh;
+  line-height: 1.5;
+  overflow-x: hidden;
+  background-image: 
+    radial-gradient(ellipse at 15% 0%, rgba(0, 180, 216, 0.08) 0%, transparent 60%),
+    radial-gradient(ellipse at 85% 100%, rgba(255, 82, 82, 0.06) 0%, transparent 60%);
+  background-attachment: fixed;
+}
+
+/* Header */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 32px;
+  background: rgba(6, 11, 20, 0.9);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.brand-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #ff5252, #ff7675);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  box-shadow: 0 0 20px rgba(255, 82, 82, 0.35);
+}
+
+.brand-info h1 {
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.brand-info p {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: var(--transition);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #00b4d8, #0077b6);
+  color: #fff;
+  box-shadow: 0 4px 14px var(--blue-glow);
+}
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 180, 216, 0.4);
+}
+
+.btn-success {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+}
+.btn-success:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
+}
+
+.btn-outline {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+}
+.btn-outline:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--border-active);
+}
+
+/* Main Container */
+.container {
+  max-width: 1560px;
+  margin: 0 auto;
+  padding: 24px 28px 80px;
+}
+
+/* Stats Cards */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(16px);
+  transition: var(--transition);
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+}
+
+.stat-card.red::before    { background: linear-gradient(90deg, #ff5252, #e11d48); }
+.stat-card.gold::before   { background: linear-gradient(90deg, #f59e0b, #d97706); }
+.stat-card.green::before  { background: linear-gradient(90deg, #10b981, #059669); }
+.stat-card.blue::before   { background: linear-gradient(90deg, #00b4d8, #3b82f6); }
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow: var(--shadow);
+}
+
+.stat-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.stat-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text-secondary);
+}
+
+.stat-icon {
+  font-size: 18px;
+  opacity: 0.85;
+}
+
+.stat-val {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: #fff;
+  margin-bottom: 4px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.stat-val.red   { color: var(--red); }
+.stat-val.gold  { color: var(--gold); }
+.stat-val.green { color: var(--green); }
+.stat-val.blue  { color: var(--blue); }
+
+.stat-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Master Filter Panel */
+.master-filter-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 22px;
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  backdrop-filter: blur(16px);
+  box-shadow: var(--shadow);
+}
+
+.filter-row-primary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.search-box {
+  position: relative;
+  flex: 1;
+  min-width: 300px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 10px 14px 10px 38px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: #fff;
+  font-family: inherit;
+  font-size: 13px;
+  outline: none;
+  transition: var(--transition);
+}
+
+.search-input:focus {
+  border-color: var(--blue);
+  background: rgba(0, 180, 216, 0.06);
+  box-shadow: 0 0 0 3px rgba(0, 180, 216, 0.15);
+}
+
+.search-icon-svg {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.filter-pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.pill-btn {
+  padding: 7px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.pill-btn.active, .pill-btn:hover {
+  background: rgba(0, 180, 216, 0.15);
+  border-color: var(--blue);
+  color: var(--blue);
+}
+
+.pill-btn.active.red {
+  background: var(--red-bg);
+  border-color: var(--red);
+  color: var(--red);
+}
+
+/* Date Range & Criteria Bar */
+.filter-row-secondary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 13px;
+}
+
+.date-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.filter-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+
+.select-input, .date-input {
+  padding: 7px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 12px;
+  outline: none;
+  transition: var(--transition);
+}
+
+.select-input:focus, .date-input:focus {
+  border-color: var(--blue);
+  background: rgba(0, 180, 216, 0.08);
+}
+
+.select-input option {
+  background: #0d1526;
+  color: #fff;
+}
+
+.btn-reset {
+  background: rgba(255, 82, 82, 0.1);
+  color: #ff7675;
+  border: 1px solid rgba(255, 82, 82, 0.25);
+  padding: 7px 14px;
+  font-size: 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-reset:hover {
+  background: rgba(255, 82, 82, 0.2);
+  border-color: var(--red);
+  color: #fff;
+}
+
+/* Table Card */
+.table-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+.table-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 22px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.02);
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.table-title-group h2 {
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.table-title-group p {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.table-scroll {
+  overflow-x: auto;
+  max-height: 60vh;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  text-align: left;
+}
+
+thead th {
+  position: sticky;
+  top: 0;
+  background: #0e172a;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  user-select: none;
+  z-index: 10;
+}
+
+.th-sortable {
+  cursor: pointer;
+}
+.th-sortable:hover {
+  color: #fff;
+}
+
+/* Column Filter Input Row */
+.filter-th {
+  background: #0a1120 !important;
+  padding: 6px 10px !important;
+  border-bottom: 1px solid var(--border);
+  top: 41px !important;
+}
+
+.col-filter-input {
+  width: 100%;
+  padding: 5px 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  color: #fff;
+  font-family: inherit;
+  font-size: 11px;
+  outline: none;
+  transition: var(--transition);
+}
+
+.col-filter-input:focus {
+  border-color: var(--blue);
+  background: rgba(0, 180, 216, 0.1);
+}
+
+tbody tr {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  transition: background 0.15s ease;
+}
+
+tbody tr:hover {
+  background: rgba(255, 255, 255, 0.035);
+}
+
+td {
+  padding: 11px 14px;
+  vertical-align: middle;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 10.5px;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+}
+
+.badge-expired {
+  background: var(--red-bg);
+  color: var(--red);
+  border: 1px solid rgba(255, 82, 82, 0.3);
+}
+
+.badge-expiring {
+  background: var(--gold-bg);
+  color: var(--gold);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.badge-active {
+  background: var(--green-bg);
+  color: var(--green);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.serial-tag {
+  font-family: 'JetBrains Mono', monospace;
+  background: rgba(0, 180, 216, 0.08);
+  color: var(--blue);
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 11.5px;
+  border: 1px solid rgba(0, 180, 216, 0.2);
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.mono-date {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11.5px;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.item-name-text {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.amount {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600;
+  color: #ffffff;
+  white-space: nowrap;
+}
+
+.customer-name {
+  font-weight: 600;
+  color: #f1f5f9;
+}
+
+.sku-text {
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text-secondary);
+  font-size: 11.5px;
+}
+
+.currency-tag {
+  font-size: 10.5px;
+  color: var(--text-secondary);
+  margin-right: 3px;
+}
+
+.inv-no-text {
+  color: var(--blue);
+  font-weight: 600;
+}
+
+.non-ser-text {
+  color: var(--text-muted);
+}
+
+/* Pagination Bar */
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 22px;
+  border-top: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.015);
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.page-btn {
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  transition: var(--transition);
+}
+
+.page-btn:hover:not(:disabled) {
+  background: rgba(0, 180, 216, 0.15);
+  border-color: var(--blue);
+  color: var(--blue);
+}
+
+.page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.page-info {
+  font-family: 'JetBrains Mono', monospace;
+  padding: 0 8px;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* Loading & Empty states */
+.loading-state, .empty-state {
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(255, 255, 255, 0.08);
+  border-top-color: var(--blue);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 14px;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* =========================================================================
+   PRINT STYLESHEET (PDF & PAPER) - Crisp Black-on-White High Contrast
+   ========================================================================= */
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 8mm 6mm;
+  }
+
+  *, *::before, *::after {
+    text-shadow: none !important;
+    box-shadow: none !important;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 7.5pt !important;
+    background-image: none !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide UI elements */
+  .header, .master-filter-card, .filter-th, .pagination-bar, .btn {
+    display: none !important;
+  }
+
+  .container {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .table-card {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .table-scroll {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .print-only-header {
+    display: block !important;
+    margin-bottom: 10px;
+    border-bottom: 2px solid #0f172a;
+    padding-bottom: 6px;
+  }
+
+  .stats-grid {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 6px !important;
+    margin-bottom: 10px !important;
+  }
+
+  .stat-card {
+    background: #f8fafc !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #000000 !important;
+    padding: 6px 8px !important;
+    border-radius: 4px !important;
+  }
+
+  .stat-label {
+    color: #475569 !important;
+    font-size: 7pt !important;
+    font-weight: bold !important;
+  }
+
+  .stat-sub {
+    color: #64748b !important;
+    font-size: 6.5pt !important;
+  }
+
+  .stat-val {
+    font-size: 11pt !important;
+    font-weight: bold !important;
+  }
+  .stat-val.red   { color: #dc2626 !important; }
+  .stat-val.gold  { color: #d97706 !important; }
+  .stat-val.green { color: #059669 !important; }
+  .stat-val.blue  { color: #0284c7 !important; }
+
+  /* Table styling */
+  table {
+    width: 100% !important;
+    table-layout: fixed !important;
+    color: #000000 !important;
+    font-size: 7pt !important;
+    border-collapse: collapse !important;
+  }
+
+  thead th {
+    background: #0f172a !important;
+    color: #ffffff !important;
+    border: 1px solid #0f172a !important;
+    padding: 4px 6px !important;
+    font-size: 6.5pt !important;
+    font-weight: bold !important;
+    text-transform: uppercase !important;
+  }
+
+  /* Fixed Column widths to perfectly fit A4 landscape */
+  thead th:nth-child(1) { width: 9% !important; }   /* Expire Date */
+  thead th:nth-child(2) { width: 22% !important; }  /* Item Name */
+  thead th:nth-child(3) { width: 10% !important; }  /* SKU */
+  thead th:nth-child(4) { width: 12% !important; }  /* Serial Number */
+  thead th:nth-child(5) { width: 9% !important; }   /* Invoice Date */
+  thead th:nth-child(6) { width: 11% !important; }  /* Sub Total */
+  thead th:nth-child(7) { width: 11% !important; }  /* Invoice # */
+  thead th:nth-child(8) { width: 11% !important; }  /* Customer Name */
+  thead th:nth-child(9) { width: 5% !important; }   /* Status */
+
+  tbody td {
+    border: 1px solid #cbd5e1 !important;
+    padding: 4px 6px !important;
+    color: #000000 !important;
+    word-break: break-word !important;
+  }
+
+  tbody tr:nth-child(even) {
+    background-color: #f8fafc !important;
+  }
+
+  /* CRITICAL: Force solid dark colors for all data text in print */
+  tbody td *,
+  strong,
+  .item-name-text,
+  .customer-name,
+  .amount,
+  .mono-date,
+  .sku-text,
+  .inv-date-text,
+  .currency-tag,
+  .non-ser-text {
+    color: #000000 !important;
+    opacity: 1 !important;
+  }
+
+  /* Specific color coding preserved for clarity */
+  tbody td:nth-child(1) .mono-date {
+    color: #dc2626 !important;
+    font-weight: bold !important;
+  }
+
+  .inv-no-text {
+    color: #0284c7 !important;
+    font-weight: bold !important;
+  }
+
+  .serial-tag {
+    color: #000000 !important;
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+    font-size: 6.5pt !important;
+  }
+
+  .badge {
+    border: 1px solid currentColor !important;
+    padding: 1px 3px !important;
+    font-size: 5.5pt !important;
+    background: transparent !important;
+    border-radius: 2px !important;
+  }
+  .badge-expired  { color: #dc2626 !important; border-color: #dc2626 !important; }
+  .badge-expiring { color: #d97706 !important; border-color: #d97706 !important; }
+  .badge-active   { color: #059669 !important; border-color: #059669 !important; }
+}
+
+.print-only-header {
+  display: none;
+}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="brand">
+    <div class="brand-icon">🛡️</div>
+    <div class="brand-info">
+      <h1>Expired Products &amp; Warranty Intelligence</h1>
+      <p>Zoho Books Live Integration • Organization ID: 815849495</p>
+    </div>
+  </div>
+
+  <div class="header-actions">
+    <button class="btn btn-outline" id="refreshBtn" onclick="fetchReport(true)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+      Sync From Zoho
+    </button>
+    <button class="btn btn-success" id="exportFilteredBtn" onclick="exportFilteredCSV()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+      Export Filtered (CSV)
+    </button>
+    <button class="btn btn-primary" onclick="window.print()" id="printPdfBtn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+      Save as PDF / Print
+    </button>
+  </div>
+</header>
+
+<main class="container">
+
+  <!-- Print Letterhead -->
+  <div class="print-only-header">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <h1 style="font-size:16pt; margin:0; font-weight:bold;">Plexus Global</h1>
+        <p style="font-size:10pt; color:#475569; margin:2px 0 0 0;">Expired Products &amp; Warranty Intelligence Report (Org: 815849495)</p>
+      </div>
+      <div style="text-align:right; font-size:8.5pt; color:#64748b;">
+        <div>Source: Zoho Books</div>
+        <div id="printDate"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats Grid -->
+  <section class="stats-grid">
+    <div class="stat-card red" style="cursor:pointer;" onclick="setStatusFilter('expired')" title="Click to filter Expired products">
+      <div class="stat-top">
+        <span class="stat-label">Expired Products</span>
+        <span class="stat-icon">🔴</span>
+      </div>
+      <div class="stat-val red" id="statExpiredCount">—</div>
+      <div class="stat-sub" id="statExpiredSub">Warranty ended (Click to view)</div>
+    </div>
+
+    <div class="stat-card gold" style="cursor:pointer;" onclick="setStatusFilter('expiring')" title="Click to filter Expiring Soon">
+      <div class="stat-top">
+        <span class="stat-label">Expiring Soon (≤30d)</span>
+        <span class="stat-icon">⚠️</span>
+      </div>
+      <div class="stat-val gold" id="statExpiringCount">—</div>
+      <div class="stat-sub" id="statExpiringSub">Needs renewal soon (Click to view)</div>
+    </div>
+
+    <div class="stat-card green" style="cursor:pointer;" onclick="setStatusFilter('active')" title="Click to filter Active warranties">
+      <div class="stat-top">
+        <span class="stat-label">Active Warranties</span>
+        <span class="stat-icon">✅</span>
+      </div>
+      <div class="stat-val green" id="statActiveCount">—</div>
+      <div class="stat-sub" id="statActiveSub">Fully active coverage (Click to view)</div>
+    </div>
+
+    <div class="stat-card blue" style="cursor:pointer;" onclick="setStatusFilter('all')" title="Click to view All records">
+      <div class="stat-top">
+        <span class="stat-label">Total Expired Value</span>
+        <span class="stat-icon">💰</span>
+      </div>
+      <div class="stat-val blue" id="statExpiredTotal" style="font-size:18px; word-break:break-word;">—</div>
+      <div class="stat-sub" id="statTotalSub">Filtered expired total (Click for All)</div>
+    </div>
+  </section>
+
+  <!-- Master Search & Date Filter Panel -->
+  <section class="master-filter-card">
+    <div class="filter-row-primary">
+      <div class="search-box">
+        <svg class="search-icon-svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" class="search-input" id="globalSearchInput" placeholder="Global Search across Product, SKU, Serial #, Invoice #, Customer..." oninput="applyFilters()">
+      </div>
+
+      <div class="filter-pills">
+        <button class="pill-btn active red" id="pillExpired" onclick="setStatusFilter('expired')">🔴 Expired Only</button>
+        <button class="pill-btn" id="pillExpiring" onclick="setStatusFilter('expiring')">⚠️ Expiring Soon</button>
+        <button class="pill-btn" id="pillActive" onclick="setStatusFilter('active')">✅ Active Only</button>
+        <button class="pill-btn" id="pillAll" onclick="setStatusFilter('all')">📋 All Items</button>
+      </div>
+    </div>
+
+    <!-- Date Range & Criteria Bar -->
+    <div class="filter-row-secondary">
+      <div class="date-group">
+        <span class="filter-label">Date Criteria:</span>
+        <select class="select-input" id="dateCriteriaField" onchange="applyFilters()">
+          <option value="expire_date">Expire Date</option>
+          <option value="invoice_date">Invoice Date</option>
+        </select>
+      </div>
+
+      <div class="date-group">
+        <span class="filter-label">Quick Preset:</span>
+        <select class="select-input" id="datePreset" onchange="handleDatePresetChange()">
+          <option value="all">All Dates</option>
+          <option value="already_expired">Already Expired (Past Dates)</option>
+          <option value="next_30">Expiring in Next 30 Days</option>
+          <option value="next_90">Expiring in Next 90 Days</option>
+          <option value="this_month">This Month</option>
+          <option value="this_year">This Year (2026)</option>
+          <option value="last_year">Last Year (2025)</option>
+          <option value="custom">Custom Date Range...</option>
+        </select>
+      </div>
+
+      <div class="date-group">
+        <span class="filter-label">From:</span>
+        <input type="date" class="date-input" id="dateFrom" onchange="handleManualDateChange()">
+        <span class="filter-label">To:</span>
+        <input type="date" class="date-input" id="dateTo" onchange="handleManualDateChange()">
+      </div>
+
+      <button class="btn-reset" onclick="resetAllFilters()">
+        ✕ Clear All Filters
+      </button>
+    </div>
+  </section>
+
+  <!-- Table Card with Column Filters -->
+  <section class="table-card">
+    <div class="table-header-bar">
+      <div class="table-title-group">
+        <h2>Report Data Records</h2>
+        <p id="tableSubText">Showing records from Zoho Books (Org ID: 815849495)</p>
+      </div>
+      <div id="lastSyncTime" style="font-size: 12px; color: var(--text-muted);"></div>
+    </div>
+
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <!-- Primary Header with Sort -->
+          <tr>
+            <th class="th-sortable" onclick="sortTable('expire_date')">Expire Date ↕</th>
+            <th class="th-sortable" onclick="sortTable('item_name')">Item Name ↕</th>
+            <th class="th-sortable" onclick="sortTable('sku')">SKU ↕</th>
+            <th class="th-sortable" onclick="sortTable('serial_number')">Serial Number ↕</th>
+            <th class="th-sortable" onclick="sortTable('invoice_date')">Invoice Date ↕</th>
+            <th class="th-sortable" onclick="sortTable('sub_total')">Sub Total ↕</th>
+            <th class="th-sortable" onclick="sortTable('invoice_number')">Invoice # ↕</th>
+            <th class="th-sortable" onclick="sortTable('customer_name')">Customer Name ↕</th>
+            <th class="th-sortable" onclick="sortTable('status')">Status ↕</th>
+          </tr>
+
+          <!-- Secondary Header Row: Column Search Bars -->
+          <tr class="filter-row-tr">
+            <th class="filter-th"><input type="text" class="col-filter-input" id="colExpireDate" placeholder="Filter Expire..." oninput="applyFilters()"></th>
+            <th class="filter-th"><input type="text" class="col-filter-input" id="colItemName" placeholder="Filter Product..." oninput="applyFilters()"></th>
+            <th class="filter-th"><input type="text" class="col-filter-input" id="colSku" placeholder="Filter SKU..." oninput="applyFilters()"></th>
+            <th class="filter-th"><input type="text" class="col-filter-input" id="colSerial" placeholder="Filter Serial #..." oninput="applyFilters()"></th>
+            <th class="filter-th"><input type="text" class="col-filter-input" id="colInvoiceDate" placeholder="Filter Inv Date..." oninput="applyFilters()"></th>
+            <th class="filter-th"><input type="text" class="col-filter-input" id="colSubTotal" placeholder="Min/Value..." oninput="applyFilters()"></th>
+            <th class="filter-th"><input type="text" class="col-filter-input" id="colInvoiceNumber" placeholder="Filter Inv #..." oninput="applyFilters()"></th>
+            <th class="filter-th"><input type="text" class="col-filter-input" id="colCustomer" placeholder="Filter Customer..." oninput="applyFilters()"></th>
+            <th class="filter-th">
+              <select class="col-filter-input" id="colStatus" onchange="applyFilters()">
+                <option value="">All Statuses</option>
+                <option value="EXPIRED">EXPIRED</option>
+                <option value="EXPIRING_SOON">EXPIRING SOON</option>
+                <option value="ACTIVE">ACTIVE</option>
+              </select>
+            </th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <tr>
+            <td colspan="9">
+              <div class="loading-state">
+                <div class="spinner"></div>
+                <p>Loading invoice records from Zoho Books...</p>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination Footer -->
+    <div class="pagination-bar">
+      <div id="paginationSummary">Showing 0 - 0 of 0 records</div>
+      <div class="pagination-controls">
+        <span style="margin-right: 8px;">Rows per page:</span>
+        <select class="select-input" id="pageSizeSelect" style="padding: 4px 8px; margin-right: 12px;" onchange="handlePageSizeChange()">
+          <option value="50">50</option>
+          <option value="100" selected>100</option>
+          <option value="250">250</option>
+          <option value="500">500</option>
+          <option value="1000">1000</option>
+          <option value="all">All</option>
+        </select>
+
+        <button class="page-btn" id="btnFirstPage" onclick="goToPage(1)">«</button>
+        <button class="page-btn" id="btnPrevPage" onclick="goToPage(currentPage - 1)">‹ Prev</button>
+        <span class="page-info" id="pageIndicator">Page 1 of 1</span>
+        <button class="page-btn" id="btnNextPage" onclick="goToPage(currentPage + 1)">Next ›</button>
+        <button class="page-btn" id="btnLastPage" onclick="goToPage(totalPages)">»</button>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+let currentStatusFilter = 'expired';
+let rawRecords = [];
+let filteredRecords = [];
+let sortCol = 'expire_date';
+let sortAsc = true;
+
+// Pagination state
+let currentPage = 1;
+let pageSize = 100;
+let totalPages = 1;
+
+async function fetchReport(refresh = false) {
+  const tbody = document.getElementById('tableBody');
+  if (refresh) {
+    document.getElementById('refreshBtn').disabled = true;
+    document.getElementById('refreshBtn').innerHTML = `<div class="spinner" style="width:13px;height:13px;margin:0;"></div> Syncing...`;
+    tbody.innerHTML = `<tr><td colspan="9"><div class="loading-state"><div class="spinner"></div><p>Fetching all invoices and serial numbers from Zoho Books (Org: 815849495)... Please wait.</p></div></td></tr>`;
+  }
+
+  try {
+    const res = await fetch(`/api/report?refresh=${refresh ? 'true' : 'false'}&only_expired=false`);
+    const data = await res.json();
+
+    if (data.error) throw new Error(data.error);
+
+    rawRecords = data.records || [];
+
+    const s = data.stats || {};
+    if (s.last_updated) {
+      document.getElementById('lastSyncTime').textContent = `Last sync: ${new Date(s.last_updated).toLocaleString()}`;
+    }
+    const pd = document.getElementById('printDate');
+    if (pd) pd.textContent = `Generated: ${new Date().toLocaleString()}`;
+
+    applyFilters();
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--red);padding:40px;">⚠️ Failed to load report: ${err.message}</td></tr>`;
+  } finally {
+    document.getElementById('refreshBtn').disabled = false;
+    document.getElementById('refreshBtn').innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg> Sync From Zoho`;
+  }
+}
+
+function setStatusFilter(filterType) {
+  currentStatusFilter = filterType;
+  document.querySelectorAll('.pill-btn').forEach(btn => btn.classList.remove('active', 'red'));
+  
+  if (filterType === 'expired') {
+    document.getElementById('pillExpired').classList.add('active', 'red');
+  } else if (filterType === 'expiring') {
+    document.getElementById('pillExpiring').classList.add('active');
+  } else if (filterType === 'active') {
+    document.getElementById('pillActive').classList.add('active');
+  } else {
+    document.getElementById('pillAll').classList.add('active');
+  }
+
+  currentPage = 1;
+  applyFilters();
+}
+
+function handleDatePresetChange() {
+  const preset = document.getElementById('datePreset').value;
+  const fromInput = document.getElementById('dateFrom');
+  const toInput = document.getElementById('dateTo');
+  const today = new Date();
+  const todayStr = today.toISOString().split('T')[0];
+
+  if (preset === 'all') {
+    fromInput.value = '';
+    toInput.value = '';
+  } else if (preset === 'already_expired') {
+    fromInput.value = '';
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    toInput.value = yesterday.toISOString().split('T')[0];
+  } else if (preset === 'next_30') {
+    fromInput.value = todayStr;
+    const future = new Date(today);
+    future.setDate(future.getDate() + 30);
+    toInput.value = future.toISOString().split('T')[0];
+  } else if (preset === 'next_90') {
+    fromInput.value = todayStr;
+    const future = new Date(today);
+    future.setDate(future.getDate() + 90);
+    toInput.value = future.toISOString().split('T')[0];
+  } else if (preset === 'this_month') {
+    const startMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    const endMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    fromInput.value = startMonth.toISOString().split('T')[0];
+    toInput.value = endMonth.toISOString().split('T')[0];
+  } else if (preset === 'this_year') {
+    fromInput.value = `${today.getFullYear()}-01-01`;
+    toInput.value = `${today.getFullYear()}-12-31`;
+  } else if (preset === 'last_year') {
+    fromInput.value = `${today.getFullYear() - 1}-01-01`;
+    toInput.value = `${today.getFullYear() - 1}-12-31`;
+  }
+
+  currentPage = 1;
+  applyFilters();
+}
+
+function handleManualDateChange() {
+  document.getElementById('datePreset').value = 'custom';
+  currentPage = 1;
+  applyFilters();
+}
+
+function resetAllFilters() {
+  document.getElementById('globalSearchInput').value = '';
+  document.getElementById('datePreset').value = 'all';
+  document.getElementById('dateFrom').value = '';
+  document.getElementById('dateTo').value = '';
+  document.getElementById('dateCriteriaField').value = 'expire_date';
+
+  // Clear column filters
+  document.getElementById('colExpireDate').value = '';
+  document.getElementById('colItemName').value = '';
+  document.getElementById('colSku').value = '';
+  document.getElementById('colSerial').value = '';
+  document.getElementById('colInvoiceDate').value = '';
+  document.getElementById('colSubTotal').value = '';
+  document.getElementById('colInvoiceNumber').value = '';
+  document.getElementById('colCustomer').value = '';
+  document.getElementById('colStatus').value = '';
+
+  setStatusFilter('all');
+}
+
+function sortTable(col) {
+  if (sortCol === col) {
+    sortAsc = !sortAsc;
+  } else {
+    sortCol = col;
+    sortAsc = true;
+  }
+  applyFilters();
+}
+
+function applyFilters() {
+  const globalQuery = (document.getElementById('globalSearchInput').value || '').toLowerCase().trim();
+  const dateField = document.getElementById('dateCriteriaField').value; // 'expire_date' or 'invoice_date'
+  const dateFrom = document.getElementById('dateFrom').value;
+  const dateTo = document.getElementById('dateTo').value;
+
+  // Column filter inputs
+  const fExp = (document.getElementById('colExpireDate').value || '').toLowerCase().trim();
+  const fItem = (document.getElementById('colItemName').value || '').toLowerCase().trim();
+  const fSku = (document.getElementById('colSku').value || '').toLowerCase().trim();
+  const fSerial = (document.getElementById('colSerial').value || '').toLowerCase().trim();
+  const fInvDate = (document.getElementById('colInvoiceDate').value || '').toLowerCase().trim();
+  const fSubTotal = (document.getElementById('colSubTotal').value || '').toLowerCase().trim();
+  const fInvNo = (document.getElementById('colInvoiceNumber').value || '').toLowerCase().trim();
+  const fCustomer = (document.getElementById('colCustomer').value || '').toLowerCase().trim();
+  const fStatus = document.getElementById('colStatus').value;
+
+  let list = [...rawRecords];
+
+  // 1. Status Pill Filter
+  if (currentStatusFilter === 'expired') {
+    list = list.filter(r => r.status === 'EXPIRED');
+  } else if (currentStatusFilter === 'expiring') {
+    list = list.filter(r => r.status === 'EXPIRING_SOON');
+  } else if (currentStatusFilter === 'active') {
+    list = list.filter(r => r.status === 'ACTIVE');
+  }
+
+  // 2. Global Search
+  if (globalQuery) {
+    list = list.filter(r => 
+      (r.item_name || '').toLowerCase().includes(globalQuery) ||
+      (r.sku || '').toLowerCase().includes(globalQuery) ||
+      (r.serial_number || '').toLowerCase().includes(globalQuery) ||
+      (r.invoice_number || '').toLowerCase().includes(globalQuery) ||
+      (r.customer_name || '').toLowerCase().includes(globalQuery) ||
+      (r.expire_date || '').toLowerCase().includes(globalQuery) ||
+      (r.invoice_date || '').toLowerCase().includes(globalQuery)
+    );
+  }
+
+  // 3. Date Range Filter
+  if (dateFrom || dateTo) {
+    list = list.filter(r => {
+      const d = r[dateField];
+      if (!d || d === 'N/A') return false;
+      if (dateFrom && d < dateFrom) return false;
+      if (dateTo && d > dateTo) return false;
+      return true;
+    });
+  }
+
+  // 4. Column Level Filters
+  if (fExp) list = list.filter(r => (r.expire_date || '').toLowerCase().includes(fExp));
+  if (fItem) list = list.filter(r => (r.item_name || '').toLowerCase().includes(fItem));
+  if (fSku) list = list.filter(r => (r.sku || '').toLowerCase().includes(fSku));
+  if (fSerial) list = list.filter(r => (r.serial_number || '').toLowerCase().includes(fSerial));
+  if (fInvDate) list = list.filter(r => (r.invoice_date || '').toLowerCase().includes(fInvDate));
+  if (fSubTotal) list = list.filter(r => (String(r.sub_total) || '').includes(fSubTotal));
+  if (fInvNo) list = list.filter(r => (r.invoice_number || '').toLowerCase().includes(fInvNo));
+  if (fCustomer) list = list.filter(r => (r.customer_name || '').toLowerCase().includes(fCustomer));
+  if (fStatus) list = list.filter(r => r.status === fStatus);
+
+  // 5. Sorting
+  list.sort((a, b) => {
+    let valA = a[sortCol] || '';
+    let valB = b[sortCol] || '';
+    if (sortCol === 'sub_total') {
+      valA = Number(valA) || 0;
+      valB = Number(valB) || 0;
+      return sortAsc ? valA - valB : valB - valA;
+    }
+    return sortAsc ? String(valA).localeCompare(String(valB)) : String(valB).localeCompare(String(valA));
+  });
+
+  filteredRecords = list;
+
+  // KPI cards always show FULL DATABASE totals (not filtered view)
+  updateDynamicMetrics(rawRecords);
+
+  // Update filtered count in header
+  const totalDbEl = document.getElementById('totalDbCount');
+  if (totalDbEl) totalDbEl.textContent = `Showing ${list.length.toLocaleString()} filtered records (Total Database: ${rawRecords.length.toLocaleString()})`;
+
+  renderTablePage();
+}
+
+function updateDynamicMetrics(dataList) {
+  const expiredItems = dataList.filter(r => r.status === 'EXPIRED');
+  const expiringItems = dataList.filter(r => r.status === 'EXPIRING_SOON');
+  const activeItems = dataList.filter(r => r.status === 'ACTIVE');
+
+  document.getElementById('statExpiredCount').textContent = expiredItems.length.toLocaleString();
+  document.getElementById('statExpiringCount').textContent = expiringItems.length.toLocaleString();
+  document.getElementById('statActiveCount').textContent = activeItems.length.toLocaleString();
+
+  // Update count labels on pill buttons
+  const pillExp = document.getElementById('pillExpired');
+  const pillExpiring = document.getElementById('pillExpiring');
+  const pillAct = document.getElementById('pillActive');
+  const pillAll = document.getElementById('pillAll');
+  if (pillExp) pillExp.textContent = `🔴 Expired (${expiredItems.length.toLocaleString()})`;
+  if (pillExpiring) pillExpiring.textContent = `⚠️ Expiring Soon (${expiringItems.length.toLocaleString()})`;
+  if (pillAct) pillAct.textContent = `✅ Active (${activeItems.length.toLocaleString()})`;
+  if (pillAll) pillAll.textContent = `📋 All Items (${dataList.length.toLocaleString()})`;
+
+  // Multi-currency calculation
+  const currencyTotals = {};
+  for (const r of expiredItems) {
+    const c = r.currency || 'USD';
+    currencyTotals[c] = (currencyTotals[c] || 0) + Number(r.sub_total || 0);
+  }
+  const formattedValueStr = Object.entries(currencyTotals)
+    .map(([c, val]) => `${c} ${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)
+    .join(' + ') || 'LKR 0.00';
+
+  document.getElementById('statExpiredTotal').textContent = formattedValueStr;
+}
+
+function handlePageSizeChange() {
+  const val = document.getElementById('pageSizeSelect').value;
+  pageSize = val === 'all' ? filteredRecords.length || 100 : parseInt(val, 10);
+  currentPage = 1;
+  renderTablePage();
+}
+
+function goToPage(page) {
+  if (page < 1 || page > totalPages) return;
+  currentPage = page;
+  renderTablePage();
+}
+
+function renderRowHtml(r) {
+  const isExpired = r.status === 'EXPIRED';
+  const isExpiring = r.status === 'EXPIRING_SOON';
+  const badgeClass = isExpired ? 'badge-expired' : (isExpiring ? 'badge-expiring' : 'badge-active');
+  const badgeText = isExpired ? `Expired (${r.days_expired}d ago)` : (isExpiring ? `Expires in ${r.days_remaining}d` : `Active (${r.days_remaining}d)`);
+  const curr = r.currency || 'USD';
+
+  return `
+    <tr>
+      <td><span class="mono-date" style="color:${isExpired ? 'var(--red)' : (isExpiring ? 'var(--gold)' : 'var(--green)')}">${r.expire_date}</span></td>
+      <td><strong class="item-name-text">${r.item_name}</strong></td>
+      <td><span class="sku-text">${r.sku || '—'}</span></td>
+      <td>${r.serial_number !== 'Non-serialized' ? `<span class="serial-tag">${r.serial_number}</span>` : '<span class="non-ser-text">Non-serialized</span>'}</td>
+      <td><span class="mono-date inv-date-text">${r.invoice_date}</span></td>
+      <td><span class="amount"><span class="currency-tag">${curr}</span>${Number(r.sub_total).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></td>
+      <td><span class="mono-date inv-no-text">${r.invoice_number}</span></td>
+      <td><span class="customer-name">${r.customer_name}</span></td>
+      <td><span class="badge ${badgeClass}">${badgeText}</span></td>
+    </tr>
+  `;
+}
+
+function renderTablePage() {
+  const tbody = document.getElementById('tableBody');
+  const total = filteredRecords.length;
+
+  document.getElementById('tableSubText').textContent = `Showing ${total.toLocaleString()} filtered records (Total Database: ${rawRecords.length.toLocaleString()})`;
+
+  if (total === 0) {
+    tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><h3>No matching records found</h3><p>Try modifying your search criteria or date filters.</p></div></td></tr>`;
+    document.getElementById('paginationSummary').textContent = 'Showing 0 - 0 of 0 records';
+    document.getElementById('pageIndicator').textContent = 'Page 0 of 0';
+    document.getElementById('btnFirstPage').disabled = true;
+    document.getElementById('btnPrevPage').disabled = true;
+    document.getElementById('btnNextPage').disabled = true;
+    document.getElementById('btnLastPage').disabled = true;
+    return;
+  }
+
+  totalPages = Math.max(1, Math.ceil(total / pageSize));
+  if (currentPage > totalPages) currentPage = totalPages;
+
+  const startIdx = (currentPage - 1) * pageSize;
+  const endIdx = Math.min(startIdx + pageSize, total);
+  const pageSlice = filteredRecords.slice(startIdx, endIdx);
+
+  document.getElementById('paginationSummary').textContent = `Showing ${(startIdx + 1).toLocaleString()} - ${endIdx.toLocaleString()} of ${total.toLocaleString()} records`;
+  document.getElementById('pageIndicator').textContent = `Page ${currentPage} of ${totalPages}`;
+
+  document.getElementById('btnFirstPage').disabled = currentPage === 1;
+  document.getElementById('btnPrevPage').disabled = currentPage === 1;
+  document.getElementById('btnNextPage').disabled = currentPage === totalPages;
+  document.getElementById('btnLastPage').disabled = currentPage === totalPages;
+
+  tbody.innerHTML = pageSlice.map(r => renderRowHtml(r)).join('');
+}
+
+// Ensure clean printing of full filtered set
+window.addEventListener('beforeprint', () => {
+  if (filteredRecords.length > 0 && filteredRecords.length <= 1500) {
+    const tbody = document.getElementById('tableBody');
+    tbody.innerHTML = filteredRecords.map(r => renderRowHtml(r)).join('');
+  }
+});
+
+window.addEventListener('afterprint', () => {
+  renderTablePage();
+});
+
+// 1-Click Export Filtered CSV directly in browser
+function exportFilteredCSV() {
+  if (filteredRecords.length === 0) {
+    alert('No records matching current filters to export.');
+    return;
+  }
+
+  const headers = [
+    'Expire Date',
+    'Item Name',
+    'SKU',
+    'Serial Number',
+    'Invoice Date',
+    'Currency',
+    'Sub Total',
+    'Invoice Number',
+    'Customer Name',
+    'Warranty (Months)',
+    'Days Expired',
+    'Status'
+  ];
+
+  const rows = filteredRecords.map(r => [
+    r.expire_date,
+    r.item_name,
+    r.sku,
+    r.serial_number,
+    r.invoice_date,
+    r.currency || 'USD',
+    r.sub_total,
+    r.invoice_number,
+    r.customer_name,
+    r.warranty_months,
+    r.days_expired,
+    r.status
+  ].map(field => `"${String(field || '').replace(/"/g, '""')}"`).join(','));
+
+  const csvContent = '\uFEFF' + [headers.join(','), ...rows].join('\r\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const dateStr = new Date().toISOString().split('T')[0];
+  a.href = url;
+  a.download = `expired_products_filtered_${dateStr}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// Initial fetch
+fetchReport();
+</script>
+</body>
+</html>

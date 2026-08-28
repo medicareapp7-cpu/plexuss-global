@@ -1,0 +1,22 @@
+{
+  "name": "zoho-books-expired-products-report",
+  "version": "1.0.0",
+  "description": "Zoho Books Expired Products & Warranty Intelligence Report Generator",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "generate": "node generate_report.js",
+    "report": "node generate_report.js"
+  },
+  "keywords": [
+    "zoho",
+    "books",
+    "warranty",
+    "expired",
+    "products",
+    "report"
+  ],
+  "author": "Plexus Global",
+  "license": "ISC"
+}

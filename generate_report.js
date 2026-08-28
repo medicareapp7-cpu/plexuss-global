@@ -47,16 +47,24 @@ let cachedToken = null;
 let cachedTokenExpiresAt = 0;
 
 function getStoredTokens() {
-  if (process.env.ZOHO_REFRESH_TOKEN) {
+  if (process.env.ZOHO_REFRESH_TOKEN && process.env.ZOHO_REFRESH_TOKEN.trim()) {
     return {
-      refresh_token: process.env.ZOHO_REFRESH_TOKEN,
+      refresh_token: process.env.ZOHO_REFRESH_TOKEN.trim(),
       access_token: process.env.ZOHO_ACCESS_TOKEN || "",
       expires_at: parseInt(process.env.ZOHO_EXPIRES_AT || "0", 10),
     };
   }
   try {
     if (fs.existsSync(TOKENS_PATH)) {
-      return JSON.parse(fs.readFileSync(TOKENS_PATH, 'utf8'));
+      const parsed = JSON.parse(fs.readFileSync(TOKENS_PATH, 'utf8'));
+      if (parsed && parsed.refresh_token) return parsed;
+    }
+  } catch (_) {}
+  try {
+    const tmpTokens = path.join(os.tmpdir(), 'tokens.json');
+    if (fs.existsSync(tmpTokens)) {
+      const parsed = JSON.parse(fs.readFileSync(tmpTokens, 'utf8'));
+      if (parsed && parsed.refresh_token) return parsed;
     }
   } catch (_) {}
   return null;

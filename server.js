@@ -143,6 +143,9 @@ const server = http.createServer(async (req, res) => {
         result = await exchangeAuthCode(code, 'https://plexuss-global.vercel.app/auth/callback');
       }
       if (!result.success) {
+        result = await exchangeAuthCode(code, 'https://plexuss-global-2q88g2gsh-plexuss.vercel.app/auth/callback');
+      }
+      if (!result.success) {
         result = await exchangeAuthCode(code, 'https://plexuss-39jpszq5r-plexuss.vercel.app/auth/callback');
       }
       if (!result.success) {

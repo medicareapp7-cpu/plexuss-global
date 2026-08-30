@@ -1081,12 +1081,12 @@ async function fetchReport(refresh = false) {
     const pd = document.getElementById('printDate');
     if (pd) pd.textContent = `Generated: ${new Date().toLocaleString()}`;
 
-    // If there are no expired items, automatically switch view to 'all' so records are immediately visible
+    // If expired items exist, show the expired section by default; otherwise show all items
     const expiredCount = rawRecords.filter(r => r.status === 'EXPIRED').length;
-    if (expiredCount === 0 && currentStatusFilter === 'expired') {
-      setStatusFilter('all');
+    if (expiredCount > 0) {
+      setStatusFilter('expired');
     } else {
-      applyFilters();
+      setStatusFilter('all');
     }
   } catch (err) {
     tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--red);padding:40px;">⚠️ Failed to load report: ${err.message}</td></tr>`;

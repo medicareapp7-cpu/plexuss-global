@@ -901,7 +901,7 @@ td {
 
     <div class="stat-card blue" style="cursor:pointer;" onclick="setStatusFilter('all')" title="Click to view All records">
       <div class="stat-top">
-        <span class="stat-label">Total Expired Value</span>
+        <span class="stat-label" id="statTotalLabel">Total Inventory Value</span>
         <span class="stat-icon">💰</span>
       </div>
       <div class="stat-val blue" id="statExpiredTotal" style="font-size:18px; word-break:break-word;">—</div>
@@ -918,10 +918,10 @@ td {
       </div>
 
       <div class="filter-pills">
-        <button class="pill-btn active red" id="pillExpired" onclick="setStatusFilter('expired')">🔴 Expired Only</button>
+        <button class="pill-btn" id="pillExpired" onclick="setStatusFilter('expired')">🔴 Expired Only</button>
         <button class="pill-btn" id="pillExpiring" onclick="setStatusFilter('expiring')">⚠️ Expiring Soon</button>
         <button class="pill-btn" id="pillActive" onclick="setStatusFilter('active')">✅ Active Only</button>
-        <button class="pill-btn" id="pillAll" onclick="setStatusFilter('all')">📋 All Items</button>
+        <button class="pill-btn active" id="pillAll" onclick="setStatusFilter('all')">📋 All Items</button>
       </div>
     </div>
 
@@ -1047,7 +1047,7 @@ td {
 </main>
 
 <script>
-let currentStatusFilter = 'expired';
+let currentStatusFilter = 'all';
 let rawRecords = [];
 let filteredRecords = [];
 let sortCol = 'expire_date';
@@ -1081,7 +1081,13 @@ async function fetchReport(refresh = false) {
     const pd = document.getElementById('printDate');
     if (pd) pd.textContent = `Generated: ${new Date().toLocaleString()}`;
 
-    applyFilters();
+    // If there are no expired items, automatically switch view to 'all' so records are immediately visible
+    const expiredCount = rawRecords.filter(r => r.status === 'EXPIRED').length;
+    if (expiredCount === 0 && currentStatusFilter === 'expired') {
+      setStatusFilter('all');
+    } else {
+      applyFilters();
+    }
   } catch (err) {
     tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--red);padding:40px;">⚠️ Failed to load report: ${err.message}</td></tr>`;
   } finally {
@@ -1293,9 +1299,10 @@ function updateDynamicMetrics(dataList) {
   if (pillAct) pillAct.textContent = `✅ Active (${activeItems.length.toLocaleString()})`;
   if (pillAll) pillAll.textContent = `📋 All Items (${dataList.length.toLocaleString()})`;
 
-  // Multi-currency calculation
+  // Multi-currency calculation for the selected view
+  const targetItems = currentStatusFilter === 'expired' ? expiredItems : (currentStatusFilter === 'active' ? activeItems : dataList);
   const currencyTotals = {};
-  for (const r of expiredItems) {
+  for (const r of targetItems) {
     const c = r.currency || 'USD';
     currencyTotals[c] = (currencyTotals[c] || 0) + Number(r.sub_total || 0);
   }
@@ -1303,6 +1310,10 @@ function updateDynamicMetrics(dataList) {
     .map(([c, val]) => `${c} ${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)
     .join(' + ') || 'LKR 0.00';
 
+  const totalLabel = document.getElementById('statTotalLabel');
+  if (totalLabel) {
+    totalLabel.textContent = currentStatusFilter === 'expired' ? 'Total Expired Value' : (currentStatusFilter === 'active' ? 'Total Active Value' : 'Total Inventory Value');
+  }
   document.getElementById('statExpiredTotal').textContent = formattedValueStr;
 }
 

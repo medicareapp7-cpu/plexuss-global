@@ -213,22 +213,26 @@ const server = http.createServer(async (req, res) => {
             onlyExpired: false,
             warrantyMonths: warrantyMonths
           });
-          cachedReport = records;
-          lastExtractedTime = new Date();
-          try {
-            fs.writeFileSync(path.join(__dirname, 'latest_report.json'), JSON.stringify(records, null, 2), 'utf8');
-          } catch (_) {
+          if (records && records.length > 0) {
+            cachedReport = records;
+            lastExtractedTime = new Date();
             try {
-              fs.writeFileSync(path.join(os.tmpdir(), 'latest_report.json'), JSON.stringify(records, null, 2), 'utf8');
-            } catch (_) {}
+              fs.writeFileSync(path.join(__dirname, 'latest_report.json'), JSON.stringify(records, null, 2), 'utf8');
+            } catch (_) {
+              try {
+                fs.writeFileSync(path.join(os.tmpdir(), 'latest_report.json'), JSON.stringify(records, null, 2), 'utf8');
+              } catch (_) {}
+            }
           }
         })();
         try {
           await extractionPromise;
         } catch (err) {
           extractionPromise = null;
-          res.writeHead(500, { 'Content-Type': 'application/json' });
-          return res.end(JSON.stringify({ error: err.message }));
+          if (!cachedReport || cachedReport.length === 0) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ error: err.message }));
+          }
         } finally {
           extractionPromise = null;
         }

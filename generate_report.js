@@ -386,7 +386,11 @@ async function extractAllExpiredProducts(options = {}) {
     console.log(`[Report] Fetching invoice list page ${page} for Org ${ORG_ID}...`);
     const res = await apiRequest('GET', `/invoices?page=${page}&per_page=${perPage}&sort_column=date&sort_order=D`);
     if (res.status >= 400 || !res.data || !res.data.invoices) {
-      console.warn(`[Report] Finished or failed at page ${page}:`, res.data?.message || res.status);
+      const errMsg = res.data?.message || `Zoho API Error (${res.status}): ${typeof res.data === 'string' ? res.data : JSON.stringify(res.data)}`;
+      console.warn(`[Report] Failed at page ${page}:`, errMsg);
+      if (page === 1) {
+        throw new Error(errMsg);
+      }
       break;
     }
     const list = res.data.invoices || [];

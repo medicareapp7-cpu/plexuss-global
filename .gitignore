@@ -7,7 +7,7 @@ debug_item.json
 debug_invoice_raw.json
 
 # Large generated report files
-latest_report.json
+# latest_report.json (included for fast startup)
 invoices_cache.json
 expired_products_report_*.csv
 

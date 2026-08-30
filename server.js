@@ -162,6 +162,10 @@ const server = http.createServer(async (req, res) => {
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
         return res.end(`<h2>Zoho Authorization Error</h2><pre>${JSON.stringify(result.error, null, 2)}</pre><br><a href="/">Back to Dashboard</a>`);
       }
+    } else {
+      // If someone visits /auth/callback directly without a code, redirect to home
+      res.writeHead(302, { Location: '/' });
+      return res.end();
     }
   }
 

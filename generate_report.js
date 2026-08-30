@@ -42,14 +42,16 @@ const CLIENT_ID = process.env.ZOHO_CLIENT_ID || "1000.60T24PKMTMV3TC2HOEMXDB3PNJ
 const CLIENT_SECRET = process.env.ZOHO_CLIENT_SECRET || "ec379df0a288f63c59546f33cb821676e78407c5f3";
 const ORG_ID = process.env.ZOHO_ORG_ID || "815849495";
 const DEFAULT_WARRANTY_MONTHS = parseInt(process.env.DEFAULT_WARRANTY_MONTHS || "12", 10);
+const FALLBACK_REFRESH_TOKEN = "1000.5b1ed0025d3641c7f22860229301c001.f649ff65d36b20da5664ec563cd41a16";
 
 let cachedToken = null;
 let cachedTokenExpiresAt = 0;
 
 function getStoredTokens() {
-  if (process.env.ZOHO_REFRESH_TOKEN && process.env.ZOHO_REFRESH_TOKEN.trim()) {
+  const refreshToken = (process.env.ZOHO_REFRESH_TOKEN && process.env.ZOHO_REFRESH_TOKEN.trim()) || FALLBACK_REFRESH_TOKEN;
+  if (refreshToken) {
     return {
-      refresh_token: process.env.ZOHO_REFRESH_TOKEN.trim(),
+      refresh_token: refreshToken,
       access_token: process.env.ZOHO_ACCESS_TOKEN || "",
       expires_at: parseInt(process.env.ZOHO_EXPIRES_AT || "0", 10),
     };

@@ -37,11 +37,43 @@ let cachedReport = null;
 let lastExtractedTime = null;
 let extractionPromise = null; // Promise-based lock to prevent duplicate parallel extractions
 
+/**
+ * Recalculates all time-sensitive fields (status, days_remaining, days_expired)
+ * against TODAY's date for every record in the report.
+ *
+ * This is CRITICAL because records are cached to disk (latest_report.json) and
+ * can become stale — a product that was ACTIVE when the cache was written may
+ * now be EXPIRED. Without this, the dashboard will undercount expired products.
+ */
+function recalculateStatus(records) {
+  if (!Array.isArray(records)) return records;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  return records.map(r => {
+    if (!r.expire_date || r.expire_date === 'N/A') return r;
+    const expDateObj = new Date(r.expire_date);
+    if (isNaN(expDateObj.getTime())) return r;
+    expDateObj.setHours(0, 0, 0, 0);
+    const daysRemaining = Math.floor((expDateObj - today) / (1000 * 60 * 60 * 24));
+    const isExpired = daysRemaining < 0;
+    const status = isExpired ? 'EXPIRED' : (daysRemaining <= 30 ? 'EXPIRING_SOON' : 'ACTIVE');
+    return {
+      ...r,
+      days_remaining: daysRemaining,
+      days_expired: isExpired ? Math.abs(daysRemaining) : 0,
+      status
+    };
+  });
+}
+
 // Try to load cached report on startup
 try {
   const jsonPath = path.join(__dirname, 'latest_report.json');
   if (fs.existsSync(jsonPath)) {
-    cachedReport = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+    const raw = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+    // Recalculate status immediately on load — the file may be days/months/years old
+    cachedReport = recalculateStatus(raw);
     lastExtractedTime = fs.statSync(jsonPath).mtime;
   }
 } catch (_) {}
@@ -214,7 +246,8 @@ const server = http.createServer(async (req, res) => {
             warrantyMonths: warrantyMonths
           });
           if (records && records.length > 0) {
-            cachedReport = records;
+            // Recalculate status before caching so fresh data also gets correct values
+            cachedReport = recalculateStatus(records);
             lastExtractedTime = new Date();
             try {
               fs.writeFileSync(path.join(__dirname, 'latest_report.json'), JSON.stringify(records, null, 2), 'utf8');
@@ -240,7 +273,9 @@ const server = http.createServer(async (req, res) => {
     }
 
     // Always return ALL records — client-side JS handles status filtering (Expired/Active/Expiring Soon)
-    let filtered = cachedReport || [];
+    // Recalculate status live every request — status fields in cache can be stale (days_remaining changes daily)
+    const liveReport = recalculateStatus(cachedReport || []);
+    let filtered = liveReport;
 
     const search = (parsedUrl.searchParams.get('search') || '').toLowerCase().trim();
     if (search) {
@@ -253,7 +288,7 @@ const server = http.createServer(async (req, res) => {
       );
     }
 
-    const expiredList = (cachedReport || []).filter(r => r.status === 'EXPIRED');
+    const expiredList = liveReport.filter(r => r.status === 'EXPIRED');
     const currencyTotals = {};
     for (const r of expiredList) {
       const c = r.currency || 'USD';
@@ -264,10 +299,10 @@ const server = http.createServer(async (req, res) => {
       .join(' + ') || 'USD 0.00';
 
     const stats = {
-      total_items: (cachedReport || []).length,
+      total_items: liveReport.length,
       expired_items: expiredList.length,
-      expiring_soon_items: (cachedReport || []).filter(r => r.status === 'EXPIRING_SOON').length,
-      active_items: (cachedReport || []).filter(r => r.status === 'ACTIVE').length,
+      expiring_soon_items: liveReport.filter(r => r.status === 'EXPIRING_SOON').length,
+      active_items: liveReport.filter(r => r.status === 'ACTIVE').length,
       total_expired_value: expiredList.reduce((sum, r) => sum + Number(r.sub_total || 0), 0).toFixed(2),
       total_expired_by_currency: currencyTotals,
       total_expired_value_formatted: formattedValueStr,

@@ -1068,7 +1068,13 @@ async function fetchReport(refresh = false) {
 
   try {
     const res = await fetch(`/api/report?refresh=${refresh ? 'true' : 'false'}&only_expired=false`);
-    const data = await res.json();
+    const rawText = await res.text();
+    let data;
+    try {
+      data = JSON.parse(rawText);
+    } catch (_) {
+      throw new Error('Server request timed out or busy. Please reload the page.');
+    }
 
     if (data.error) throw new Error(data.error);
 

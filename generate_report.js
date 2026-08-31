@@ -41,7 +41,7 @@ const TOKENS_PATH = path.join(__dirname, 'tokens.json');
 const CLIENT_ID = process.env.ZOHO_CLIENT_ID || "1000.60T24PKMTMV3TC2HOEMXDB3PNJZX9F";
 const CLIENT_SECRET = process.env.ZOHO_CLIENT_SECRET || "ec379df0a288f63c59546f33cb821676e78407c5f3";
 const ORG_ID = process.env.ZOHO_ORG_ID || "815849495";
-const DEFAULT_WARRANTY_MONTHS = parseInt(process.env.DEFAULT_WARRANTY_MONTHS || "12", 10);
+const DEFAULT_WARRANTY_MONTHS = parseInt(process.env.DEFAULT_WARRANTY_MONTHS || "24", 10);
 const FALLBACK_REFRESH_TOKEN = "1000.5b1ed0025d3641c7f22860229301c001.f649ff65d36b20da5664ec563cd41a16";
 
 let cachedToken = null;

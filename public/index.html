@@ -940,6 +940,7 @@ td {
         <select class="select-input" id="datePreset" onchange="handleDatePresetChange()">
           <option value="all">All Dates</option>
           <option value="already_expired">Already Expired (Past Dates)</option>
+          <option value="past_2_years">Past 2 Years (Last 24 Months)</option>
           <option value="next_30">Expiring in Next 30 Days</option>
           <option value="next_90">Expiring in Next 90 Days</option>
           <option value="this_month">This Month</option>
@@ -1135,6 +1136,11 @@ function handleDatePresetChange() {
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
     toInput.value = yesterday.toISOString().split('T')[0];
+  } else if (preset === 'past_2_years') {
+    const past2Years = new Date(today);
+    past2Years.setFullYear(past2Years.getFullYear() - 2);
+    fromInput.value = past2Years.toISOString().split('T')[0];
+    toInput.value = todayStr;
   } else if (preset === 'next_30') {
     fromInput.value = todayStr;
     const future = new Date(today);

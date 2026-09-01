@@ -69,12 +69,19 @@ function recalculateStatus(records) {
 
 // Try to load cached report on startup
 try {
-  const jsonPath = path.join(__dirname, 'latest_report.json');
-  if (fs.existsSync(jsonPath)) {
-    const raw = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
-    // Recalculate status immediately on load — the file may be days/months/years old
+  let raw = null;
+  try {
+    raw = require('./latest_report.json');
+  } catch (_) {
+    const jsonPath = path.join(__dirname, 'latest_report.json');
+    if (fs.existsSync(jsonPath)) {
+      raw = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+    }
+  }
+  if (raw && Array.isArray(raw)) {
+    // Recalculate status immediately on load against today's date
     cachedReport = recalculateStatus(raw);
-    lastExtractedTime = fs.statSync(jsonPath).mtime;
+    lastExtractedTime = new Date();
   }
 } catch (_) {}
 

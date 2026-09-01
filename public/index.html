@@ -1088,13 +1088,8 @@ async function fetchReport(refresh = false) {
     const pd = document.getElementById('printDate');
     if (pd) pd.textContent = `Generated: ${new Date().toLocaleString()}`;
 
-    // If expired items exist, show the expired section by default; otherwise show all items
-    const expiredCount = rawRecords.filter(r => r.status === 'EXPIRED').length;
-    if (expiredCount > 0) {
-      setStatusFilter('expired');
-    } else {
-      setStatusFilter('all');
-    }
+    // Default to 'all' so all inventory items (Active, Expiring Soon, Expired) are immediately visible
+    setStatusFilter(currentStatusFilter || 'all');
   } catch (err) {
     tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--red);padding:40px;">⚠️ Failed to load report: ${err.message}</td></tr>`;
   } finally {

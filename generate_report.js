@@ -488,38 +488,25 @@ async function extractAllExpiredProducts(options = {}) {
       const quantity = Number(item.quantity || 1);
       const subTotal = Number(item.item_total || (itemRate * quantity) || 0);
 
-      // Extract Expiry Date:
-      // 1. Explicit Zoho custom field (cf_warranty_expired)
+      // Extract Expiry Date — ONLY from explicit Zoho 'cf_warranty_expired' custom field
+      // If this field is NOT filled in Zoho Books, skip this item entirely (no estimation/fallback)
       const expiryInfo = extractLineItemExpiryDate(item);
-      let expireDate = expiryInfo.expireDate;
-      let warrantyMonths = customWarrantyMonths || DEFAULT_WARRANTY_MONTHS || 12;
+      const expireDate = expiryInfo.expireDate;
 
-      if (expireDate) {
-        // Calculate warranty duration from invoice date → expiry date (for display)
-        if (invDate) {
-          const d1 = new Date(invDate);
-          const d2 = new Date(expireDate);
-          if (!isNaN(d1.getTime()) && !isNaN(d2.getTime())) {
-            const diff = (d2.getFullYear() - d1.getFullYear()) * 12 + (d2.getMonth() - d1.getMonth());
-            if (diff > 0) warrantyMonths = diff;
-          }
-        }
-      } else {
-        // 2. Fallback: Automatically detect warranty from Name/SKU/Description, or use DEFAULT_WARRANTY_MONTHS (12)
-        const detected = detectWarrantyMonths(itemName, item.description || '', sku);
-        warrantyMonths = detected || customWarrantyMonths || DEFAULT_WARRANTY_MONTHS || 12;
-        if (invDate) {
-          expireDate = calculateExpiryDate(invDate, warrantyMonths);
-        }
-      }
-
-      // 3. If still no expireDate, calculate using invDate + 12 months as final fallback
-      if (!expireDate && invDate) {
-        expireDate = calculateExpiryDate(invDate, 12);
-      }
-
-      // If no date could be computed, skip item
+      // ❌ No cf_warranty_expired field filled in Zoho → skip this item
       if (!expireDate) continue;
+
+      // Calculate warranty months for display only (invoice date → expiry date)
+      let warrantyMonths = customWarrantyMonths || DEFAULT_WARRANTY_MONTHS || 12;
+      if (invDate) {
+        const d1 = new Date(invDate);
+        const d2 = new Date(expireDate);
+        if (!isNaN(d1.getTime()) && !isNaN(d2.getTime())) {
+          const diff = (d2.getFullYear() - d1.getFullYear()) * 12 + (d2.getMonth() - d1.getMonth());
+          if (diff > 0) warrantyMonths = diff;
+        }
+      }
+
 
       // Determine status from expireDate vs today
       const expDateObj = new Date(expireDate);

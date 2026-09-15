@@ -452,12 +452,6 @@ async function extractAllExpiredProducts(options = {}) {
     const invoice = cachedEntry.invoice;
 
     const invNumber = invoice.invoice_number || inv.invoice_number || '';
-
-    // Skip PDL (Plexuss Distribute Lanka) invoices — only show Plexuss Global data
-    if (invNumber.toUpperCase().startsWith('PDL')) {
-      continue;
-    }
-
     const rawInvDate = invoice.date || inv.date || '';
     const invDate = parseZohoDate(rawInvDate) || rawInvDate || '';
     const customerName = invoice.customer_name || inv.customer_name || '';

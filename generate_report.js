@@ -289,6 +289,8 @@ function extractLineItemExpiryDate(item) {
     'cf_warranty_expire',
     'cf_warranty_expiry_date',
     'cf_expiry_date',
+    'cf_sla_period',
+    'sla_period',
   ];
 
   const possibleLabels = [
@@ -296,6 +298,7 @@ function extractLineItemExpiryDate(item) {
     'warranty expiry',
     'warranty expire',
     'expiry date',
+    'sla period',
   ];
 
   // 1. Check direct cf_ properties on item object

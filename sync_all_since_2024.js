@@ -102,10 +102,11 @@ function calculateExpiryDate(invDate, months) {
 }
 
 async function main() {
-  const fromDate = '2024-04-01';
-  console.log(`[Sync] Starting full extraction for Plexuss Global (Org: ${ORG_ID}) since ${fromDate}...`);
+  const minExpireDate = '2024-04-01';
+  const minInvoiceDate = '2023-04-01'; // To capture products that expired starting 2024-04-01
+  console.log(`[Sync] Starting extraction for Plexuss Global: Invoices since ${minInvoiceDate}, Expirations since ${minExpireDate}...`);
 
-  // Step 1: Fetch invoice list page by page until date < fromDate
+  // Step 1: Fetch invoice list page by page until date < minInvoiceDate
   const allInvoices = [];
   let page = 1;
   const perPage = 200;
@@ -117,7 +118,7 @@ async function main() {
     if (!data || !data.invoices || data.invoices.length === 0) break;
 
     for (const inv of data.invoices) {
-      if (inv.date < fromDate) {
+      if (inv.date < minInvoiceDate) {
         reachedBefore = true;
         break;
       }
@@ -127,7 +128,7 @@ async function main() {
     page++;
   }
 
-  console.log(`[Sync] Found ${allInvoices.length} invoices since ${fromDate}.`);
+  console.log(`[Sync] Found ${allInvoices.length} invoices since ${minInvoiceDate}.`);
 
   // Step 2: Fetch details for invoices not yet in cache
   const toFetch = allInvoices.filter(inv => !cache[inv.invoice_id] || !cache[inv.invoice_id].invoice);
@@ -205,6 +206,9 @@ async function main() {
 
       if (!expireDate) continue;
 
+      // Only include items that expired ON or AFTER minExpireDate (2024-04-01 onwards)
+      if (expireDate < minExpireDate) continue;
+
       const expD = new Date(expireDate);
       expD.setHours(0, 0, 0, 0);
       const daysRemaining = Math.floor((expD - today) / (1000 * 60 * 60 * 24));
@@ -252,13 +256,11 @@ async function main() {
   reportRecords.sort((a, b) => (b.expire_date || '').localeCompare(a.expire_date || ''));
 
   const expiredList = reportRecords.filter(r => r.status === 'EXPIRED');
-  const expiredSince2024 = expiredList.filter(r => r.expire_date >= fromDate);
 
   console.log('\n=============================================');
   console.log(`✅ SYNC COMPLETE!`);
   console.log(`Total database items: ${reportRecords.length}`);
-  console.log(`Total Expired items: ${expiredList.length}`);
-  console.log(`Expired items since ${fromDate}: ${expiredSince2024.length}`);
+  console.log(`Total Expired items (since ${minExpireDate}): ${expiredList.length}`);
   console.log(`Expiring soon (<=30d): ${reportRecords.filter(r => r.status === 'EXPIRING_SOON').length}`);
   console.log(`Active items: ${reportRecords.filter(r => r.status === 'ACTIVE').length}`);
   console.log('=============================================\n');

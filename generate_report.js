@@ -457,10 +457,16 @@ async function extractAllExpiredProducts(options = {}) {
     const customerName = invoice.customer_name || inv.customer_name || '';
     const currencyCode = invoice.currency_code || inv.currency_code || 'USD';
 
+    // Only Plexuss Global's own outgoing invoices (FY25, PLEX prefixes)
+    // Skip PDL (Plexuss Distribute) invoices — completely unrelated company
+    if (invNumber.toUpperCase().startsWith('PDL')) {
+      continue;
+    }
+
     const lineItems = invoice.line_items || [];
     for (const item of lineItems) {
       const itemName = item.name || item.description || 'Unnamed Item';
-      
+
       // Ignore opening balance dummy items
       if (itemName.toUpperCase() === 'OPB' || (item.sku && item.sku.toUpperCase() === 'OPB')) {
         continue;
@@ -469,10 +475,10 @@ async function extractAllExpiredProducts(options = {}) {
       // Exact SKU from line item or custom field
       let sku = item.sku || '';
       if (!sku && Array.isArray(item.item_custom_fields)) {
-        const skuField = item.item_custom_fields.find(f => 
-          f.api_name === 'cf_sku' || 
-          f.api_name === 'cf_part_no' || 
-          f.label === 'Part No' || 
+        const skuField = item.item_custom_fields.find(f =>
+          f.api_name === 'cf_sku' ||
+          f.api_name === 'cf_part_no' ||
+          f.label === 'Part No' ||
           f.label === 'SKU'
         );
         if (skuField) sku = skuField.value || skuField.value_formatted || '';
@@ -482,27 +488,38 @@ async function extractAllExpiredProducts(options = {}) {
       const quantity = Number(item.quantity || 1);
       const subTotal = Number(item.item_total || (itemRate * quantity) || 0);
 
-      // Extract Expiry Date — ONLY from explicit Zoho 'cf_warranty_expired' custom field
-      // If this field is NOT filled in Zoho Books, skip this item entirely (no estimation/fallback)
+      // Step 1: Check explicit cf_warranty_expired in Zoho
       const expiryInfo = extractLineItemExpiryDate(item);
-      const expireDate = expiryInfo.expireDate;
-
-      // ❌ No cf_warranty_expired field filled in Zoho → skip this item
-      if (!expireDate) continue;
-
-      // Calculate warranty months for display only (invoice date → expiry date)
+      let expireDate = expiryInfo.expireDate;
       let warrantyMonths = customWarrantyMonths || DEFAULT_WARRANTY_MONTHS || 12;
-      if (invDate) {
-        const d1 = new Date(invDate);
-        const d2 = new Date(expireDate);
-        if (!isNaN(d1.getTime()) && !isNaN(d2.getTime())) {
-          const diff = (d2.getFullYear() - d1.getFullYear()) * 12 + (d2.getMonth() - d1.getMonth());
-          if (diff > 0) warrantyMonths = diff;
+
+      if (expireDate) {
+        // Calculate warranty months for display (invoice date → expiry date)
+        if (invDate) {
+          const d1 = new Date(invDate);
+          const d2 = new Date(expireDate);
+          if (!isNaN(d1.getTime()) && !isNaN(d2.getTime())) {
+            const diff = (d2.getFullYear() - d1.getFullYear()) * 12 + (d2.getMonth() - d1.getMonth());
+            if (diff > 0) warrantyMonths = diff;
+          }
+        }
+      } else {
+        // Step 2: No explicit date → detect warranty period from product name/SKU/description
+        const detected = detectWarrantyMonths(itemName, item.description || '', sku);
+        warrantyMonths = detected || customWarrantyMonths || DEFAULT_WARRANTY_MONTHS || 12;
+        if (invDate) {
+          expireDate = calculateExpiryDate(invDate, warrantyMonths);
         }
       }
 
+      // Step 3: Final fallback — invoice date + 12 months
+      if (!expireDate && invDate) {
+        expireDate = calculateExpiryDate(invDate, 12);
+      }
 
-      // Determine status from expireDate vs today
+      // No date at all → skip
+      if (!expireDate) continue;
+
       const expDateObj = new Date(expireDate);
       expDateObj.setHours(0, 0, 0, 0);
       const daysRemaining = Math.floor((expDateObj - today) / (1000 * 60 * 60 * 24));

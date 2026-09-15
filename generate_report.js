@@ -41,7 +41,7 @@ const TOKENS_PATH = path.join(__dirname, 'tokens.json');
 const CLIENT_ID = process.env.ZOHO_CLIENT_ID || "1000.60T24PKMTMV3TC2HOEMXDB3PNJZX9F";
 const CLIENT_SECRET = process.env.ZOHO_CLIENT_SECRET || "ec379df0a288f63c59546f33cb821676e78407c5f3";
 const ORG_ID = process.env.ZOHO_ORG_ID || "815849495";
-const DEFAULT_WARRANTY_MONTHS = parseInt(process.env.DEFAULT_WARRANTY_MONTHS || "24", 10);
+const DEFAULT_WARRANTY_MONTHS = parseInt(process.env.DEFAULT_WARRANTY_MONTHS || "12", 10);
 const FALLBACK_REFRESH_TOKEN = "1000.5b1ed0025d3641c7f22860229301c001.f649ff65d36b20da5664ec563cd41a16";
 
 let cachedToken = null;
@@ -390,13 +390,15 @@ async function extractAllExpiredProducts(options = {}) {
   console.log(`[Report] Starting invoice extraction for Organization ID: ${ORG_ID}`);
   console.log(`[Report] From Date: ${fromDate}, Default Warranty Months: ${customWarrantyMonths}, Filter Only Expired: ${onlyExpired}`);
 
+  const isVercel = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+  const maxPages = options.maxPages || (isVercel ? 1 : 999);
   let allInvoicesSummary = [];
   let page = 1;
   const perPage = 200;
   let reachedOlder = false;
 
-  // 1. Fetch all invoices metadata for Org (1 API call per 200 invoices, stops at fromDate)
-  while (!reachedOlder) {
+  // 1. Fetch all invoices metadata for Org (1 API call per 200 invoices, stops at fromDate or maxPages)
+  while (!reachedOlder && page <= maxPages) {
     console.log(`[Report] Fetching invoice list page ${page} for Org ${ORG_ID}...`);
     const res = await apiRequest('GET', `/invoices?page=${page}&per_page=${perPage}&sort_column=date&sort_order=D`);
     if (res.status >= 400 || !res.data || !res.data.invoices) {

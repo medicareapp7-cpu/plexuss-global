@@ -118,7 +118,7 @@ async function getAccessToken(forceRefresh = false) {
   return await refreshAccessToken(tokens.refresh_token);
 }
 
-async function apiRequest(method, endpoint, body = null, isRetry = false) {
+async function apiRequest(method, endpoint, body = null, isRetry = false, attempt = 1) {
   let accessToken = await getAccessToken(isRetry);
   const separator = endpoint.includes('?') ? '&' : '?';
   const url = `https://www.zohoapis.com/books/v3${endpoint}${separator}organization_id=${ORG_ID}`;
@@ -130,10 +130,19 @@ async function apiRequest(method, endpoint, body = null, isRetry = false) {
     },
   };
   if (body) options.body = JSON.stringify(body);
-  const res = await fetch(url, options);
-  const text = await res.text();
-  let parsed;
-  try { parsed = JSON.parse(text); } catch (_) { parsed = text; }
+  
+  let res, text, parsed;
+  try {
+    res = await fetch(url, options);
+    text = await res.text();
+    try { parsed = JSON.parse(text); } catch (_) { parsed = text; }
+  } catch (err) {
+    if (attempt <= 3) {
+      await new Promise(r => setTimeout(r, 1000 * attempt));
+      return apiRequest(method, endpoint, body, isRetry, attempt + 1);
+    }
+    return { status: 500, data: { message: err.message } };
+  }
 
   if ((res.status === 401 || (parsed && (parsed.code === 57 || parsed.code === 14))) && !isRetry) {
     const tokens = getStoredTokens();
@@ -372,20 +381,22 @@ function saveInvoiceCache(cache) {
 
 /** Main extraction function */
 async function extractAllExpiredProducts(options = {}) {
+  const fromDate = options.fromDate || '2024-04-01';
   const onlyExpired = options.onlyExpired !== false; // default true
   const customWarrantyMonths = options.warrantyMonths || DEFAULT_WARRANTY_MONTHS;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
   console.log(`[Report] Starting invoice extraction for Organization ID: ${ORG_ID}`);
-  console.log(`[Report] Default Warranty Months: ${customWarrantyMonths}, Filter Only Expired: ${onlyExpired}`);
+  console.log(`[Report] From Date: ${fromDate}, Default Warranty Months: ${customWarrantyMonths}, Filter Only Expired: ${onlyExpired}`);
 
   let allInvoicesSummary = [];
   let page = 1;
   const perPage = 200;
+  let reachedOlder = false;
 
-  // 1. Fetch all invoices metadata for Org (1 API call per 200 invoices)
-  while (true) {
+  // 1. Fetch all invoices metadata for Org (1 API call per 200 invoices, stops at fromDate)
+  while (!reachedOlder) {
     console.log(`[Report] Fetching invoice list page ${page} for Org ${ORG_ID}...`);
     const res = await apiRequest('GET', `/invoices?page=${page}&per_page=${perPage}&sort_column=date&sort_order=D`);
     if (res.status >= 400 || !res.data || !res.data.invoices) {
@@ -398,12 +409,18 @@ async function extractAllExpiredProducts(options = {}) {
     }
     const list = res.data.invoices || [];
     if (list.length === 0) break;
-    allInvoicesSummary.push(...list);
-    if (!res.data.page_context?.has_more_page) break;
+    for (const inv of list) {
+      if (fromDate && inv.date && inv.date < fromDate) {
+        reachedOlder = true;
+        break;
+      }
+      allInvoicesSummary.push(inv);
+    }
+    if (reachedOlder || !res.data.page_context?.has_more_page) break;
     page++;
   }
 
-  console.log(`[Report] Total invoices found: ${allInvoicesSummary.length}. Checking local cache to minimize API usage...`);
+  console.log(`[Report] Total invoices found since ${fromDate}: ${allInvoicesSummary.length}. Checking local cache to minimize API usage...`);
 
   const invoiceCache = loadInvoiceCache();
   const maxInvoicesToProcess = options.limit || allInvoicesSummary.length;
@@ -554,6 +571,11 @@ async function extractAllExpiredProducts(options = {}) {
         status: status,
         invoice_status: invoice.status || inv.status || ''
       };
+
+      // Only include items that expired on or after fromDate (e.g. 2024-04-01 onwards)
+      if (fromDate && expireDate < fromDate) {
+        continue;
+      }
 
       // Generate row per serial number, or one row for non-serialized items
       if (serialNumbers.length > 0) {

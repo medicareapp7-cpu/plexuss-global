@@ -240,6 +240,7 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/api/report') {
     const refresh = parsedUrl.searchParams.get('refresh') === 'true';
     const warrantyMonths = parseInt(parsedUrl.searchParams.get('warranty_months') || '12', 10);
+    const fromDate = parsedUrl.searchParams.get('from_date') || '2024-04-01';
 
     if (refresh || !cachedReport) {
       // If an extraction is already in progress, wait for it (don't spawn a new one)
@@ -250,7 +251,8 @@ const server = http.createServer(async (req, res) => {
         extractionPromise = (async () => {
           const records = await extractAllExpiredProducts({
             onlyExpired: false,
-            warrantyMonths: warrantyMonths
+            warrantyMonths: warrantyMonths,
+            fromDate: fromDate
           });
           if (records && records.length > 0) {
             // Recalculate status before caching so fresh data also gets correct values

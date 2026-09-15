@@ -938,6 +938,7 @@ td {
       <div class="date-group">
         <span class="filter-label">Quick Preset:</span>
         <select class="select-input" id="datePreset" onchange="handleDatePresetChange()">
+          <option value="since_2024" selected>Since 2024-04-01 (Expired)</option>
           <option value="all">All Dates</option>
           <option value="already_expired">Already Expired (Past Dates)</option>
           <option value="past_2_years">Past 2 Years (Last 24 Months)</option>
@@ -1088,8 +1089,12 @@ async function fetchReport(refresh = false) {
     const pd = document.getElementById('printDate');
     if (pd) pd.textContent = `Generated: ${new Date().toLocaleString()}`;
 
-    // Default to 'all' so all inventory items (Active, Expiring Soon, Expired) are immediately visible
-    setStatusFilter(currentStatusFilter || 'all');
+    // Apply since_2024 preset on initial load if selected
+    if (document.getElementById('datePreset').value === 'since_2024') {
+      handleDatePresetChange();
+    } else {
+      setStatusFilter(currentStatusFilter || 'all');
+    }
   } catch (err) {
     tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--red);padding:40px;">⚠️ Failed to load report: ${err.message}</td></tr>`;
   } finally {
@@ -1123,7 +1128,14 @@ function handleDatePresetChange() {
   const today = new Date();
   const todayStr = today.toISOString().split('T')[0];
 
-  if (preset === 'all') {
+  if (preset === 'since_2024') {
+    fromInput.value = '2024-04-01';
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    toInput.value = yesterday.toISOString().split('T')[0];
+    document.getElementById('dateCriteriaField').value = 'expire_date';
+    setStatusFilter('expired');
+  } else if (preset === 'all') {
     fromInput.value = '';
     toInput.value = '';
   } else if (preset === 'already_expired') {
